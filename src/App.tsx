@@ -385,49 +385,42 @@ function App() {
     }
   };
 
-  const sortByIMB = async () => {
-    if (!selectedSheet || !sheetData || sheetData.values.length <= 1) return;
-
+  const sortByIMB = () => {
+    if (!selectedSheet || !sheetData || sheetData.values.length <= 1) {
+      toast.error('Tidak ada data untuk diurutkan');
+      return;
+    }
+  
     try {
       setIsLoading(true);
-      const sheetsResponse = await window.gapi.client.sheets.spreadsheets.get({
-        spreadsheetId: import.meta.env.VITE_SPREADSHEET_ID,
+      console.log("Sorting by IMB prefix on sheet:", selectedSheet);
+  
+      // Salin data untuk sorting
+      const dataToSort = [...sheetData.values];
+      const header = dataToSort[0]; // Simpan header
+      const rows = dataToSort.slice(1); // Ambil baris data
+  
+      // Urutkan baris berdasarkan prefix numerik dari Nomor IMB (kolom indeks 5)
+      rows.sort((a, b) => {
+        const imbA = a[5] || ''; // Kolom Nomor IMB (indeks 5)
+        const imbB = b[5] || '';
+        
+        // Ambil bagian numerik awal sebelum tanda "/"
+        const numA = parseInt(imbA.split('/')[0], 10) || 0;
+        const numB = parseInt(imbB.split('/')[0], 10) || 0;
+        
+        return numA - numB; // Urutkan ascending
       });
-      const sheet = sheetsResponse.result.sheets?.find((s: any) => s.properties.title === selectedSheet);
-      const sheetId = sheet?.properties.sheetId;
-
-      if (!sheetId) throw new Error('Sheet ID not found');
-
-      await window.gapi.client.sheets.spreadsheets.batchUpdate({
-        spreadsheetId: import.meta.env.VITE_SPREADSHEET_ID,
-        resource: {
-          requests: [
-            {
-              sortRange: {
-                range: {
-                  sheetId,
-                  startRowIndex: 1, // Mulai dari baris kedua (setelah header)
-                  endRowIndex: sheetData.values.length,
-                  startColumnIndex: 0,
-                  endColumnIndex: 13, // Sampai kolom M
-                },
-                sortSpecs: [
-                  {
-                    dimensionIndex: 5, // Kolom Nomor IMB (indeks 5, kolom F)
-                    sortOrder: 'ASCENDING',
-                  },
-                ],
-              },
-            },
-          ],
-        },
-      });
-
+  
+      // Gabungkan header dan data yang sudah diurutkan
+      const sortedData = [header, ...rows];
+      setSheetData({ values: sortedData });
+      console.log("Sorted data by IMB prefix:", sortedData);
+  
       toast.success('Data berhasil diurutkan berdasarkan Nomor IMB');
-      await loadSheetData(selectedSheet);
     } catch (error: any) {
       console.error('Error sorting by IMB:', error);
-      toast.error('Gagal mengurutkan data');
+      toast.error('Gagal mengurutkan data: ' + (error.message || 'Unknown error'));
     } finally {
       setIsLoading(false);
     }
