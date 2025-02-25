@@ -518,7 +518,7 @@ function App() {
                   type="text"
                   className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
                   value={formData.nama}
-                  onChange={(e) => setFormData({ ...formData, nama: e.target.value })}
+                  onChange={(e) => setFormData({ ...formData, nama: e.target.value.toUpperCase() })}
                 />
               </div>
             </div>
