@@ -72,7 +72,6 @@ function App() {
   const [sheetData, setSheetData] = useState<SheetData | null>(null);
   const [isInitialized, setIsInitialized] = useState(false);
   const [token, setToken] = useState<string | null>(null);
-  const [isPollingEnabled, setIsPollingEnabled] = useState(true);
   const [isGisLoaded, setIsGisLoaded] = useState(false);
 
   useEffect(() => {
@@ -159,14 +158,14 @@ function App() {
   };
 
 //  Sistem logout jika ingin dipakai.
-  // const handleLogout = () => {
-  //   setToken(null);
-  //   localStorage.removeItem('googleAccessToken');
-  //   setIsInitialized(false);
-  //   setAvailableSheets([]);
-  //   setSheetData(null);
-  //   toast.success('Logged out successfully');
-  // };
+  const handleLogout = () => {
+    setToken(null);
+    localStorage.removeItem('googleAccessToken');
+    setIsInitialized(false);
+    setAvailableSheets([]);
+    setSheetData(null);
+    toast.success('Logged out successfully');
+  };
 
   const loadSheets = async () => {
     try {
@@ -483,12 +482,10 @@ function App() {
                   </option>
                 ))}
               </select>
-              <button
-          onClick={() => setIsPollingEnabled(!isPollingEnabled)}
-          className={`py-1 px-3 rounded-md ${isPollingEnabled ? 'bg-red-600 hover:bg-red-700' : 'bg-green-600 hover:bg-green-700'} text-white`}
-        >
-          {isPollingEnabled ? 'Matikan Real-Time' : 'Hidupkan Real-Time'}
-        </button>
+      <button
+  onClick={handleLogout}
+  className="bg-red-600 text-white py-2 px-4 rounded-md hover:bg-red-700 flex items-center gap-2"
+>Keluar Akun</button>
               {isLoading && <Loader2 className="w-5 h-5 animate-spin text-blue-600" />}
             </div>
           </div>
