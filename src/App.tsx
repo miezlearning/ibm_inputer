@@ -64,6 +64,7 @@ const INITIAL_FORM_DATA: IMBFormData = {
 };
 
 function App() {
+  
   const [formData, setFormData] = useState<IMBFormData>(INITIAL_FORM_DATA);
   const [isLoading, setIsLoading] = useState(false);
   const [selectedSheet, setSelectedSheet] = useState('');
@@ -71,16 +72,14 @@ function App() {
   const [sheetData, setSheetData] = useState<SheetData | null>(null);
   const [isInitialized, setIsInitialized] = useState(false);
   const [token, setToken] = useState<string | null>(null);
-
   useEffect(() => {
-    const script = document.createElement('script');
-    script.src = 'https://accounts.google.com/gsi/client';
-    script.async = true;
-    script.onload = () => console.log('GIS script loaded successfully');
-    script.onerror = () => toast.error('Gagal memuat GIS');
-    document.body.appendChild(script);
-
-    return () => document.body.removeChild(script);
+    // Cek apakah token sudah ada di localStorage saat aplikasi dimuat
+    const savedToken = localStorage.getItem('googleAccessToken');
+    if (savedToken) {
+      setToken(savedToken);
+      console.log('Token loaded from localStorage:', savedToken);
+      loadSheetsAPI(); // Langsung load API jika token ada
+    }
   }, []);
 
   const loadSheetsAPI = () => {
@@ -128,7 +127,7 @@ function App() {
       toast.error('Google Identity Services tidak tersedia');
       return;
     }
-
+  
     console.log('Starting Google login...');
     setIsLoading(true);
     const client = window.google.accounts.oauth2.initTokenClient({
@@ -144,13 +143,24 @@ function App() {
         }
         console.log('Setting token:', response.access_token);
         setToken(response.access_token);
-        console.log('Token set, loading Sheets API');
+        localStorage.setItem('googleAccessToken', response.access_token); // Simpan token ke localStorage
+        console.log('Token set and saved to localStorage, loading Sheets API');
         loadSheetsAPI();
       },
     });
-
+  
     client.requestAccessToken();
   };
+
+//  Sistem logout jika ingin dipakai.
+  // const handleLogout = () => {
+  //   setToken(null);
+  //   localStorage.removeItem('googleAccessToken');
+  //   setIsInitialized(false);
+  //   setAvailableSheets([]);
+  //   setSheetData(null);
+  //   toast.success('Logged out successfully');
+  // };
 
   const loadSheets = async () => {
     try {
@@ -444,6 +454,7 @@ function App() {
   }
 
   return (
+    
     <div className="min-h-screen bg-gray-50 py-8">
       <Toaster position="top-right" />
       <div className="max-w-6xl mx-auto">
