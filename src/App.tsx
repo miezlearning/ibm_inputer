@@ -72,83 +72,89 @@ function App() {
   const [sheetData, setSheetData] = useState<SheetData | null>(null);
   const [isInitialized, setIsInitialized] = useState(false);
   const [token, setToken] = useState<string | null>(null);
+  const [isPollingEnabled, setIsPollingEnabled] = useState(true);
+  const [isGisLoaded, setIsGisLoaded] = useState(false);
+
   useEffect(() => {
-    // Cek apakah token sudah ada di localStorage saat aplikasi dimuat
-    const savedToken = localStorage.getItem('googleAccessToken');
-    if (savedToken) {
-      setToken(savedToken);
-      console.log('Token loaded from localStorage:', savedToken);
-      loadSheetsAPI(); // Langsung load API jika token ada
-    }
+    const gisScript = document.createElement('script');
+    gisScript.src = 'https://accounts.google.com/gsi/client';
+    gisScript.async = true;
+    gisScript.onload = () => {
+      console.log('GIS script loaded successfully');
+      setIsGisLoaded(true); // Tandai GIS sebagai loaded
+    };
+    gisScript.onerror = () => {
+      console.error('Failed to load GIS script');
+      toast.error('Gagal memuat Google Identity Services');
+      setIsGisLoaded(false);
+    };
+    document.body.appendChild(gisScript);
+
+    return () => document.body.removeChild(gisScript);
   }, []);
 
+  useEffect(() => {
+    if (isGisLoaded) {
+      const savedToken = localStorage.getItem('googleAccessToken');
+      if (savedToken) {
+        setToken(savedToken);
+        loadSheetsAPI();
+      }
+    }
+  }, [isGisLoaded]);
   const loadSheetsAPI = () => {
-    console.log('Loading Sheets API script...');
     const script = document.createElement('script');
     script.src = 'https://apis.google.com/js/api.js';
     script.async = true;
     script.onload = () => {
-      console.log('Sheets API script loaded');
+      console.log('GAPI script loaded');
       initializeSheetsAPI();
     };
     script.onerror = () => toast.error('Gagal memuat Sheets API');
     document.body.appendChild(script);
   };
-
+  
   const initializeSheetsAPI = () => {
-    if (!window.gapi || !token) {
-      console.error('GAPI or token not available:', { gapi: !!window.gapi, token });
-      toast.error('GAPI atau token tidak tersedia');
-      return;
-    }
-
-    console.log('Initializing Sheets API with token:', token);
     window.gapi.load('client', async () => {
       try {
+        console.log('Initializing GAPI client with token:', token);
         await window.gapi.client.init({
           apiKey: import.meta.env.VITE_GOOGLE_API_KEY,
           discoveryDocs: ['https://sheets.googleapis.com/$discovery/rest?version=v4'],
         });
         window.gapi.client.setToken({ access_token: token });
-        console.log('Sheets API initialized successfully');
+        console.log('GAPI client initialized successfully');
         setIsInitialized(true);
-        console.log('isInitialized set to true');
         await loadSheets();
-      } catch (error: any) {
-        console.error('Error initializing Sheets API:', error);
+      } catch (error) {
+        console.error('Failed to initialize Sheets API:', error);
         toast.error('Gagal menginisialisasi Sheets API');
       }
     });
   };
 
   const handleGoogleLogin = () => {
-    if (!window.google) {
+    if (!isGisLoaded || !window.google) {
       console.error('Google Identity Services not available');
-      toast.error('Google Identity Services tidak tersedia');
+      toast.error('Google Identity Services belum siap. Tunggu sebentar atau periksa koneksi.');
       return;
     }
-  
-    console.log('Starting Google login...');
+
     setIsLoading(true);
     const client = window.google.accounts.oauth2.initTokenClient({
       client_id: import.meta.env.VITE_GOOGLE_CLIENT_ID,
       scope: 'https://www.googleapis.com/auth/spreadsheets',
       callback: (response: any) => {
-        console.log('Google login callback received:', response);
         setIsLoading(false);
         if (response.error) {
-          console.error('Login failed:', response);
           toast.error('Gagal login: ' + response.error);
           return;
         }
-        console.log('Setting token:', response.access_token);
         setToken(response.access_token);
-        localStorage.setItem('googleAccessToken', response.access_token); // Simpan token ke localStorage
-        console.log('Token set and saved to localStorage, loading Sheets API');
+        localStorage.setItem('googleAccessToken', response.access_token);
         loadSheetsAPI();
       },
     });
-  
     client.requestAccessToken();
   };
 
@@ -193,10 +199,9 @@ function App() {
         spreadsheetId: import.meta.env.VITE_SPREADSHEET_ID,
         range: `${sheetName}!A:M`,
       });
-
-      setSheetData({ values: response.result.values || [] });
+      const newData = { values: response.result.values || [] };
+      setSheetData((prev) => (JSON.stringify(prev?.values) !== JSON.stringify(newData.values) ? newData : prev));
     } catch (error: any) {
-      console.error('Error loading sheet data:', error);
       toast.error('Gagal memuat data sheet');
     } finally {
       setIsLoading(false);
@@ -443,8 +448,8 @@ function App() {
         <span>Menghubungkan ke Google Sheets...</span>
         <button
           onClick={handleGoogleLogin}
-          className="bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 flex items-center gap-2"
-          disabled={isLoading}
+          className="bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 flex items-center gap-2 disabled:bg-gray-400 disabled:cursor-not-allowed"
+          disabled={isLoading || !isGisLoaded} // Disable tombol jika GIS belum siap
         >
           {isLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : null}
           Login dengan Google
@@ -478,6 +483,12 @@ function App() {
                   </option>
                 ))}
               </select>
+              <button
+          onClick={() => setIsPollingEnabled(!isPollingEnabled)}
+          className={`py-1 px-3 rounded-md ${isPollingEnabled ? 'bg-red-600 hover:bg-red-700' : 'bg-green-600 hover:bg-green-700'} text-white`}
+        >
+          {isPollingEnabled ? 'Matikan Real-Time' : 'Hidupkan Real-Time'}
+        </button>
               {isLoading && <Loader2 className="w-5 h-5 animate-spin text-blue-600" />}
             </div>
           </div>
