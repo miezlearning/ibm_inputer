@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { FileSpreadsheet, Trash2, Save, Loader2, ArrowUp, ArrowDown, ChevronRight, Edit, Download, Database, SortAsc, Upload, CheckCircle, FileText, LogOut, ChevronLeft } from 'lucide-react';
 import { Toaster, toast } from 'react-hot-toast';
-import { FaSearch } from "react-icons/fa";
 
 interface IMBFormData {
   nomorBerkas: string;
@@ -71,10 +70,14 @@ function App() {
   const [availableSheets, setAvailableSheets] = useState<string[]>([]);
   const [sheetData, setSheetData] = useState<SheetData | null>(null);
   const [isInitialized, setIsInitialized] = useState(false);
-  const [token, setToken] = useState<string | null>(null);
   const [isGisLoaded, setIsGisLoaded] = useState(false);
+  const [token, setToken] = useState<string | null>(() => {
+    const savedToken = localStorage.getItem('googleAccessToken');
+    const expirationTime = localStorage.getItem('tokenExpiration');
+    const now = Date.now();
+    return savedToken && expirationTime && now < parseInt(expirationTime) ? savedToken : null;
+  });
 
-  // Load GIS
   useEffect(() => {
     const gisScript = document.createElement('script');
     gisScript.src = 'https://accounts.google.com/gsi/client';
@@ -92,22 +95,30 @@ function App() {
     return () => document.body.removeChild(gisScript);
   }, []);
 
-  // Inisialisasi token dari localStorage saat GIS loaded
+  useEffect(() => {
+    if (isGisLoaded && token) {
+      loadSheetsAPI();
+    }
+  }, [isGisLoaded, token]);
+  
   useEffect(() => {
     if (isGisLoaded) {
       const savedToken = localStorage.getItem('googleAccessToken');
       const expirationTime = localStorage.getItem('tokenExpiration');
       const now = Date.now();
-      console.log('Cek token di useEffect:', savedToken, 'Expiration:', expirationTime, 'Now:', now);
+  
       if (savedToken && expirationTime && now < parseInt(expirationTime)) {
         setToken(savedToken);
         loadSheetsAPI();
       } else {
-        setToken(null); // Jangan hapus dari localStorage di sini, biarkan sampai logout eksplisit
+        localStorage.removeItem('googleAccessToken');
+        localStorage.removeItem('tokenExpiration');
+        setToken(null);
+        // Redirect ke login atau minta pengguna login ulang
       }
     }
   }, [isGisLoaded]);
-
+  
   const loadSheetsAPI = () => {
     const script = document.createElement('script');
     script.src = 'https://apis.google.com/js/api.js';
@@ -119,7 +130,7 @@ function App() {
     script.onerror = () => toast.error('Gagal memuat Sheets API');
     document.body.appendChild(script);
   };
-
+  
   const initializeSheetsAPI = () => {
     window.gapi.load('client', async () => {
       try {
@@ -133,13 +144,18 @@ function App() {
         }
         console.log('GAPI client initialized successfully');
         setIsInitialized(true);
-        if (token) await loadSheets(); // Hanya load sheets jika sudah ada token
       } catch (error) {
         console.error('Failed to initialize Sheets API:', error);
         toast.error('Gagal menginisialisasi Sheets API');
       }
     });
   };
+  
+  useEffect(() => {
+    if (isInitialized && token) {
+      loadSheets();
+    }
+  }, [isInitialized, token]);
 
   const handleGoogleLogin = () => {
     if (!isGisLoaded || !window.google) {
@@ -523,23 +539,19 @@ function App() {
                 <h1 className="text-xl font-bold">Form Input Data IMB</h1>
               </div>
               <div className="flex items-center gap-4">
-  <div className="relative">
-    <select
-      className="text-gray-800 text-sm rounded-lg border border-gray-300 shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 py-2 px-3 w-48 transition-all duration-200 hover:border-gray-400 outline-none"
-      value={selectedSheet}
-      onChange={handleSheetChange}
-      disabled={isLoading}
-    >
-      <option value="">Pilih Sheet</option>
-      {availableSheets.map((sheet) => (
-        <option key={sheet} value={sheet}>
-          {sheet}
-        </option>
-      ))}
-    </select>
-    {/* Tambahkan ikon kaca pembesar di sebelah select */}
-    <FaSearch className="absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
-  </div>
+  <select
+    className="text-gray-800 text-sm rounded-lg border border-gray-300 shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 py-2 px-3 w-48 transition-all duration-200 hover:border-gray-400 outline-none"
+    value={selectedSheet}
+    onChange={handleSheetChange}
+    disabled={isLoading}
+  >
+    <option value="">Pilih Sheet</option>
+    {availableSheets.map((sheet) => (
+      <option key={sheet} value={sheet}>
+        {sheet}
+      </option>
+    ))}
+  </select>
 
   <button
     onClick={handleLogout}
