@@ -64,7 +64,6 @@ const INITIAL_FORM_DATA: IMBFormData = {
 };
 
 function App() {
-  
   const [formData, setFormData] = useState<IMBFormData>(INITIAL_FORM_DATA);
   const [isLoading, setIsLoading] = useState(false);
   const [selectedSheet, setSelectedSheet] = useState('');
@@ -74,33 +73,40 @@ function App() {
   const [token, setToken] = useState<string | null>(null);
   const [isGisLoaded, setIsGisLoaded] = useState(false);
 
+  // Load GIS
   useEffect(() => {
     const gisScript = document.createElement('script');
     gisScript.src = 'https://accounts.google.com/gsi/client';
     gisScript.async = true;
     gisScript.onload = () => {
       console.log('GIS script loaded successfully');
-      setIsGisLoaded(true); // Tandai GIS sebagai loaded
+      setIsGisLoaded(true);
     };
     gisScript.onerror = () => {
       console.error('Failed to load GIS script');
       toast.error('Gagal memuat Google Identity Services');
-      setIsGisLoaded(false);
     };
     document.body.appendChild(gisScript);
 
     return () => document.body.removeChild(gisScript);
   }, []);
 
+  // Inisialisasi token dari localStorage saat GIS loaded
   useEffect(() => {
     if (isGisLoaded) {
       const savedToken = localStorage.getItem('googleAccessToken');
-      if (savedToken) {
+      const expirationTime = localStorage.getItem('tokenExpiration');
+      const now = Date.now();
+      console.log('Cek token di useEffect:', savedToken, 'Expiration:', expirationTime, 'Now:', now);
+      if (savedToken && expirationTime && now < parseInt(expirationTime)) {
         setToken(savedToken);
         loadSheetsAPI();
+      } else {
+        setToken(null); // Jangan hapus dari localStorage di sini, biarkan sampai logout eksplisit
       }
     }
   }, [isGisLoaded]);
+
   const loadSheetsAPI = () => {
     const script = document.createElement('script');
     script.src = 'https://apis.google.com/js/api.js';
@@ -112,7 +118,7 @@ function App() {
     script.onerror = () => toast.error('Gagal memuat Sheets API');
     document.body.appendChild(script);
   };
-  
+
   const initializeSheetsAPI = () => {
     window.gapi.load('client', async () => {
       try {
@@ -121,10 +127,12 @@ function App() {
           apiKey: import.meta.env.VITE_GOOGLE_API_KEY,
           discoveryDocs: ['https://sheets.googleapis.com/$discovery/rest?version=v4'],
         });
-        window.gapi.client.setToken({ access_token: token });
+        if (token) {
+          window.gapi.client.setToken({ access_token: token });
+        }
         console.log('GAPI client initialized successfully');
         setIsInitialized(true);
-        await loadSheets();
+        if (token) await loadSheets(); // Hanya load sheets jika sudah ada token
       } catch (error) {
         console.error('Failed to initialize Sheets API:', error);
         toast.error('Gagal menginisialisasi Sheets API');
@@ -135,7 +143,7 @@ function App() {
   const handleGoogleLogin = () => {
     if (!isGisLoaded || !window.google) {
       console.error('Google Identity Services not available');
-      toast.error('Google Identity Services belum siap. Tunggu sebentar atau periksa koneksi.');
+      toast.error('Google Identity Services belum siap.');
       return;
     }
 
@@ -149,18 +157,24 @@ function App() {
           toast.error('Gagal login: ' + response.error);
           return;
         }
-        setToken(response.access_token);
-        localStorage.setItem('googleAccessToken', response.access_token);
-        loadSheetsAPI();
+        const accessToken = response.access_token;
+        const expiresIn = response.expires_in;
+        const expirationTime = Date.now() + expiresIn * 1000;
+
+        setToken(accessToken); // Pastikan state token diperbarui
+        localStorage.setItem('googleAccessToken', accessToken);
+        localStorage.setItem('tokenExpiration', expirationTime.toString());
+        console.log('Login sukses - Token:', accessToken, 'Expiration:', expirationTime);
+        loadSheetsAPI(); // Inisialisasi ulang setelah login
       },
     });
     client.requestAccessToken();
   };
 
-//  Sistem logout jika ingin dipakai.
   const handleLogout = () => {
     setToken(null);
     localStorage.removeItem('googleAccessToken');
+    localStorage.removeItem('tokenExpiration');
     setIsInitialized(false);
     setAvailableSheets([]);
     setSheetData(null);
@@ -168,30 +182,34 @@ function App() {
   };
 
   const loadSheets = async () => {
+    if (!token) return; // Jangan load sheets jika belum login
     try {
-      console.log('Loading sheets from spreadsheet...');
       setIsLoading(true);
       const response = await window.gapi.client.sheets.spreadsheets.get({
         spreadsheetId: import.meta.env.VITE_SPREADSHEET_ID,
       });
-
       const sheets = response.result.sheets?.map((sheet: any) => sheet.properties.title) || [];
       console.log('Sheets loaded:', sheets);
       setAvailableSheets(sheets);
-
       if (sheets.length > 0 && !selectedSheet) {
         setSelectedSheet(sheets[0]);
         await loadSheetData(sheets[0]);
       }
     } catch (error: any) {
       console.error('Error loading sheets:', error);
-      toast.error('Gagal memuat daftar sheet');
+      if (error.result?.error?.code === 401) {
+        toast.error('Sesi login kedaluwarsa. Silakan login ulang.');
+        handleLogout();
+      } else {
+        toast.error('Gagal memuat daftar sheet');
+      }
     } finally {
       setIsLoading(false);
     }
   };
 
   const loadSheetData = async (sheetName: string) => {
+    if (!token) return;
     try {
       setIsLoading(true);
       const response = await window.gapi.client.sheets.spreadsheets.values.get({
@@ -201,7 +219,13 @@ function App() {
       const newData = { values: response.result.values || [] };
       setSheetData((prev) => (JSON.stringify(prev?.values) !== JSON.stringify(newData.values) ? newData : prev));
     } catch (error: any) {
-      toast.error('Gagal memuat data sheet');
+      console.error('Error loading sheet data:', error);
+      if (error.result?.error?.code === 401) {
+        toast.error('Sesi login kedaluwarsa. Silakan login ulang.');
+        handleLogout();
+      } else {
+        toast.error('Gagal memuat data sheet');
+      }
     } finally {
       setIsLoading(false);
     }
@@ -210,7 +234,9 @@ function App() {
   const handleSheetChange = async (e: React.ChangeEvent<HTMLSelectElement>) => {
     const newSheet = e.target.value;
     setSelectedSheet(newSheet);
-    if (newSheet) await loadSheetData(newSheet);
+    if (newSheet && token) {
+      await loadSheetData(newSheet);
+    }
   };
 
   const generateIMBNumber = () => {
@@ -225,6 +251,27 @@ function App() {
     if (!selectedSheet) {
       toast.error('Pilih sheet terlebih dahulu');
       return;
+    }
+
+    const savedToken = localStorage.getItem('googleAccessToken');
+    const expirationTime = localStorage.getItem('tokenExpiration');
+    console.log('Token saat submit:', token, 'Saved token:', savedToken, 'Expiration:', expirationTime);
+
+    if (!savedToken) {
+      toast.error('Silakan login terlebih dahulu untuk menyimpan data');
+      return;
+    }
+
+    if (expirationTime && Date.now() > parseInt(expirationTime)) {
+      toast.error('Sesi login telah kedaluwarsa. Silakan login ulang.');
+      handleLogout();
+      return;
+    }
+
+    // Pastikan token di state sinkron dengan localStorage
+    if (token !== savedToken) {
+      setToken(savedToken);
+      window.gapi.client.setToken({ access_token: savedToken });
     }
 
     try {
@@ -256,11 +303,15 @@ function App() {
       });
 
       toast.success('Data berhasil disimpan');
-      // Tidak reset formData agar data tetap ada
       await loadSheetData(selectedSheet);
     } catch (error: any) {
       console.error('Error saving data:', error);
-      toast.error('Gagal menyimpan data');
+      if (error.result?.error?.code === 401) {
+        toast.error('Sesi login telah kedaluwarsa. Silakan login ulang.');
+        handleLogout();
+      } else {
+        toast.error(`Gagal menyimpan data: ${error.result?.error?.message || 'Kesalahan tidak diketahui'}`);
+      }
     } finally {
       setIsLoading(false);
     }
@@ -448,7 +499,7 @@ function App() {
         <button
           onClick={handleGoogleLogin}
           className="bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 flex items-center gap-2 disabled:bg-gray-400 disabled:cursor-not-allowed"
-          disabled={isLoading || !isGisLoaded} // Disable tombol jika GIS belum siap
+          disabled={isLoading || !isGisLoaded}
         >
           {isLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : null}
           Login dengan Google
@@ -456,6 +507,7 @@ function App() {
       </div>
     );
   }
+
 
   return (
     
