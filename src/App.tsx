@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { FileSpreadsheet, Trash2, Save, Loader2, ArrowUp, ArrowDown, ChevronRight, Edit, Download, Database, SortAsc, Upload, CheckCircle, FileText, LogOut, ChevronLeft } from 'lucide-react';
 import { Toaster, toast } from 'react-hot-toast';
+import { FaSearch } from "react-icons/fa";
 
 interface IMBFormData {
   nomorBerkas: string;
@@ -521,29 +522,37 @@ function App() {
                 <FileSpreadsheet className="w-6 h-6 text-white" />
                 <h1 className="text-xl font-bold">Form Input Data IMB</h1>
               </div>
-              <div className="flex items-center gap-3">
-                <select
-                  className="text-gray-800 text-sm rounded-md border-0 shadow-sm focus:ring-2 focus:ring-blue-500"
-                  value={selectedSheet}
-                  onChange={handleSheetChange}
-                  disabled={isLoading}
-                >
-                  <option value="">Pilih Sheet</option>
-                  {availableSheets.map((sheet) => (
-                    <option key={sheet} value={sheet}>
-                      {sheet}
-                    </option>
-                  ))}
-                </select>
-                <button
-                  onClick={handleLogout}
-                  className="bg-red-600 text-white py-1.5 px-3 rounded-md hover:bg-red-700 transition-colors text-sm flex items-center gap-1.5"
-                >
-                  <LogOut className="w-4 h-4" />
-                  Keluar
-                </button>
-                {isLoading && <Loader2 className="w-5 h-5 animate-spin text-white" />}
-              </div>
+              <div className="flex items-center gap-4">
+  <div className="relative">
+    <select
+      className="text-gray-800 text-sm rounded-lg border border-gray-300 shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 py-2 px-3 w-48 transition-all duration-200 hover:border-gray-400 outline-none"
+      value={selectedSheet}
+      onChange={handleSheetChange}
+      disabled={isLoading}
+    >
+      <option value="">Pilih Sheet</option>
+      {availableSheets.map((sheet) => (
+        <option key={sheet} value={sheet}>
+          {sheet}
+        </option>
+      ))}
+    </select>
+    {/* Tambahkan ikon kaca pembesar di sebelah select */}
+    <FaSearch className="absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+  </div>
+
+  <button
+    onClick={handleLogout}
+    className="bg-red-600 text-white py-2 px-4 rounded-lg hover:bg-red-700 transition-all text-sm flex items-center gap-2 shadow-sm hover:shadow-md shadow-red-600/30 hover:shadow-red-600/40"
+  >
+    <LogOut className="w-4 h-4" />
+    Keluar
+  </button>
+
+  {isLoading && (
+    <Loader2 className="w-6 h-6 animate-spin text-gray-400" />
+  )}
+</div>
             </div>
           </div>
   
