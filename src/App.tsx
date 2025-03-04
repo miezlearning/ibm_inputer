@@ -64,6 +64,8 @@ const INITIAL_FORM_DATA: IMBFormData = {
 };
 
 function App() {
+const [editingRow, setEditingRow] = useState<number | null>(null);
+const [editData, setEditData] = useState<string[]>([]);
   const [formData, setFormData] = useState<IMBFormData>(INITIAL_FORM_DATA);
   const [isLoading, setIsLoading] = useState(false);
   const [selectedSheet, setSelectedSheet] = useState('');
@@ -119,6 +121,90 @@ function App() {
     }
   }, [isGisLoaded]);
   
+  // Fungsi untuk memulai edit
+const handleEditRow = (rowIndex: number) => {
+  if (!sheetData) return;
+  setEditingRow(rowIndex);
+  setEditData([...sheetData.values[rowIndex]]);
+};
+
+// Fungsi untuk menangani perubahan pada input
+const handleEditChange = (cellIndex: number, value: string) => {
+  const newEditData = [...editData];
+  newEditData[cellIndex] = value;
+  setEditData(newEditData);
+};
+
+// Fungsi untuk membatalkan edit
+const cancelEdit = () => {
+  setEditingRow(null);
+  setEditData([]);
+};
+
+// Fungsi untuk menyimpan perubahan ke Google Sheets
+const saveEdit = async () => {
+  if (!token) {
+    toast.error('Silakan login terlebih dahulu untuk menyimpan data');
+    return;
+  }
+
+  const expirationTime = localStorage.getItem('tokenExpiration');
+
+  if (expirationTime && Date.now() > parseInt(expirationTime)) {
+    toast.error('Sesi login telah kedaluwarsa. Silakan login ulang.');
+    handleLogout();
+    return;
+  }
+
+  try {
+    setIsLoading(true);
+    
+    // Temukan ID Sheet
+    const sheetResponse = await window.gapi.client.sheets.spreadsheets.get({
+      spreadsheetId: import.meta.env.VITE_SPREADSHEET_ID,
+    });
+    
+    const sheet = sheetResponse.result.sheets?.find((s: any) => s.properties.title === selectedSheet);
+    const sheetId = sheet?.properties.sheetId;
+    
+    if (!sheetId) throw new Error('Sheet ID not found');
+    
+    // Perbarui data di Google Sheets
+    await window.gapi.client.sheets.spreadsheets.values.update({
+      spreadsheetId: import.meta.env.VITE_SPREADSHEET_ID,
+      range: `${selectedSheet}!A${(editingRow ?? 0) + 1}:M${(editingRow ?? 0) + 1}`,
+      valueInputOption: 'RAW',
+      resource: {
+        values: [editData]
+      }
+    });
+    
+    // Perbarui data lokal
+    const newSheetData = {...sheetData};
+    if (newSheetData.values) {
+      newSheetData.values[editingRow ?? 0] = editData;
+    }
+    setSheetData(newSheetData as SheetData);
+    
+    // Reset state editing
+    setEditingRow(null);
+    setEditData([]);
+    
+    toast.success('Data berhasil diperbarui');
+  } catch (error: any) {
+    console.error('Error saat menyimpan perubahan:', error);
+    
+    if (error.result?.error?.code === 401) {
+      toast.error('Sesi login telah kedaluwarsa. Silakan login ulang.');
+      handleLogout();
+    } else {
+      toast.error(`Gagal menyimpan perubahan: ${error.message || 'Terjadi kesalahan'}`);
+    }
+  } finally {
+    setIsLoading(false);
+  }
+};
+
   const loadSheetsAPI = () => {
     const script = document.createElement('script');
     script.src = 'https://apis.google.com/js/api.js';
@@ -832,121 +918,165 @@ function App() {
         </div>
   
         {/* Data Table */}
-        {sheetData && sheetData.values.length > 0 && (
-          <div className="bg-white rounded-lg shadow-lg overflow-hidden border border-gray-200">
-            <div className="bg-gray-50 p-4 border-b border-gray-200 flex justify-between items-center">
-              <h2 className="text-lg font-semibold text-gray-700 flex items-center">
-                <Database className="w-5 h-5 mr-2 text-blue-600" />
-                Data {selectedSheet}
-              </h2>
-              <div className="flex gap-2">
-                <button
-                  onClick={() => alert('Export functionality')}
-                  className="bg-green-600 text-white py-1.5 px-3 rounded-md hover:bg-green-700 transition-colors text-sm flex items-center gap-1.5"
-                >
-                  <Download className="w-4 h-4" />
-                  Export
-                </button>
-                <button
-                  onClick={sortByIMB}
-                  className="bg-blue-600 text-white py-1.5 px-3 rounded-md hover:bg-blue-700 transition-colors text-sm flex items-center gap-1.5"
-                  disabled={isLoading}
-                >
-                  <SortAsc className="w-4 h-4" />
-                  Urutkan No. IMB
-                </button>
-              </div>
-            </div>
-            
-            <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-100">
-                  <tr>
-                    {sheetData.values[0].map((header, index) => (
-                      <th
-                        key={index}
-                        className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                      >
-                        {header}
-                      </th>
-                    ))}
-                    <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Aksi
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
-                  {sheetData.values.slice(1).map((row, rowIndex) => (
-                    <tr key={rowIndex} className="hover:bg-gray-50 transition-colors">
-                      {row.map((cell, cellIndex) => (
-                        <td key={cellIndex} className="px-4 py-2 whitespace-nowrap text-sm text-gray-500">
-                          {cell}
-                        </td>
-                      ))}
-                      <td className="px-4 py-2 whitespace-nowrap text-right text-sm font-medium">
-                        <div className="flex gap-1 justify-end">
-                          <button
-                            onClick={() => moveRowUp(rowIndex + 1)}
-                            className="text-blue-600 hover:text-blue-900 p-1 rounded hover:bg-blue-50"
-                            disabled={rowIndex === 0 || isLoading}
-                            title="Pindah ke atas"
-                          >
-                            <ArrowUp className="w-4 h-4" />
-                          </button>
-                          <button
-                            onClick={() => moveRowDown(rowIndex + 1)}
-                            className="text-blue-600 hover:text-blue-900 p-1 rounded hover:bg-blue-50"
-                            disabled={rowIndex === sheetData.values.length - 2 || isLoading}
-                            title="Pindah ke bawah"
-                          >
-                            <ArrowDown className="w-4 h-4" />
-                          </button>
-                          <button
-                            onClick={() => alert('Edit row ' + (rowIndex + 1))}
-                            className="text-amber-600 hover:text-amber-900 p-1 rounded hover:bg-amber-50"
-                            disabled={isLoading}
-                            title="Edit data"
-                          >
-                            <Edit className="w-4 h-4" />
-                          </button>
-                          <button
-                            onClick={() => deleteRow(rowIndex + 1)}
-                            className="text-red-600 hover:text-red-900 p-1 rounded hover:bg-red-50"
-                            disabled={isLoading}
-                            title="Hapus data"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-            
-            <div className="bg-gray-50 px-4 py-3 border-t border-gray-200 flex items-center justify-between">
-              <div className="text-sm text-gray-500">
-                Total: {sheetData.values.length - 1} data
-              </div>
-              <div className="flex gap-1">
-                <button
-                  className="bg-gray-200 text-gray-600 p-1 rounded hover:bg-gray-300"
-                  disabled={true}
-                >
-                  <ChevronLeft className="w-5 h-5" />
-                </button>
-                <div className="bg-blue-600 text-white px-3 py-1 rounded">1</div>
-                <button
-                  className="bg-gray-200 text-gray-600 p-1 rounded hover:bg-gray-300"
-                  disabled={true}
-                >
-                  <ChevronRight className="w-5 h-5" />
-                </button>
-              </div>
-            </div>
+{sheetData && sheetData.values.length > 0 && (
+  <div className="bg-white rounded-lg shadow-lg overflow-hidden border border-gray-200">
+    <div className="bg-gray-50 p-4 border-b border-gray-200 flex justify-between items-center">
+      <h2 className="text-lg font-semibold text-gray-700 flex items-center">
+        <Database className="w-5 h-5 mr-2 text-blue-600" />
+        Data {selectedSheet}
+      </h2>
+      <div className="flex gap-2">
+        <button
+          onClick={() => alert('Export functionality')}
+          className="bg-green-600 text-white py-1.5 px-3 rounded-md hover:bg-green-700 transition-colors text-sm flex items-center gap-1.5"
+        >
+          <Download className="w-4 h-4" />
+          Export
+        </button>
+        <button
+          onClick={sortByIMB}
+          className="bg-blue-600 text-white py-1.5 px-3 rounded-md hover:bg-blue-700 transition-colors text-sm flex items-center gap-1.5"
+          disabled={isLoading}
+        >
+          <SortAsc className="w-4 h-4" />
+          Urutkan No. IMB
+        </button>
+      </div>
+    </div>
+    
+    <div className="overflow-x-auto">
+      <table className="min-w-full divide-y divide-gray-200">
+        <thead className="bg-gray-100">
+          <tr>
+            {/* Header Kolom Data */}
+            {sheetData.values[0].map((header, index) => (
+              <th
+                key={index}
+                className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+              >
+                {header}
+              </th>
+            ))}
+            {/* Kolom Aksi - Header (moved to right) */}
+            <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider border-l border-gray-200">
+              Aksi
+            </th>
+          </tr>
+        </thead>
+        <tbody className="bg-white divide-y divide-gray-200">
+        {sheetData.values.slice(1).map((row, rowIndex) => (
+    <tr
+      key={rowIndex}
+      className="hover:bg-gray-50 transition-colors align-middle"
+    >
+      {row.map((cell, cellIndex) => (
+       <td
+       key={cellIndex}
+       className="px-4 py-2 text-sm text-gray-500 align-middle min-w-[200px]" // Uniform min-width for all cells
+     >
+          {editingRow === rowIndex + 1 ? (
+            <input
+              type="text"
+              value={editData[cellIndex] || cell}
+              onChange={(e) => handleEditChange(cellIndex, e.target.value)}
+              className="w-full border border-gray-300 rounded px-3 py-2 text-base focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          ) : (
+            cell
+          )}
+        </td>
+      ))}
+      {/* Kolom Aksi - Sel (moved to right) */}
+      <td className="border-l border-gray-200 px-2 py-2 whitespace-nowrap hover:bg-gray-50">
+        <div className="flex flex-col gap-1 items-center">
+          <div className="flex gap-1">
+            <button
+              onClick={() => moveRowUp(rowIndex + 1)}
+              className="text-blue-600 hover:text-blue-900 p-1 rounded hover:bg-blue-50"
+              disabled={rowIndex === 0 || isLoading}
+              title="Pindah ke atas"
+            >
+              <ArrowUp className="w-4 h-4" />
+            </button>
+            <button
+              onClick={() => moveRowDown(rowIndex + 1)}
+              className="text-blue-600 hover:text-blue-900 p-1 rounded hover:bg-blue-50"
+              disabled={rowIndex === sheetData.values.length - 2 || isLoading}
+              title="Pindah ke bawah"
+            >
+              <ArrowDown className="w-4 h-4" />
+            </button>
           </div>
-        )}
+          <div className="flex gap-1">
+            <button
+              onClick={() => handleEditRow(rowIndex + 1)}
+              className="text-amber-600 hover:text-amber-900 p-1 rounded hover:bg-amber-50"
+              disabled={isLoading || editingRow === rowIndex + 1}
+              title="Edit data"
+            >
+              <Edit className="w-4 h-4" />
+            </button>
+            <button
+              onClick={() => deleteRow(rowIndex + 1)}
+              className="text-red-600 hover:text-red-900 p-1 rounded hover:bg-red-50"
+              disabled={isLoading}
+              title="Hapus data"
+            >
+              <Trash2 className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+      </td>
+    </tr>
+  ))}
+        </tbody>
+      </table>
+    </div>
+    
+    {/* Edit Controls - Show only when editing */}
+    {editingRow !== null && (
+      <div className="bg-yellow-50 p-3 border-t border-yellow-200 flex justify-end gap-2">
+        <button
+          onClick={cancelEdit}
+          className="bg-gray-500 text-white py-1 px-3 rounded hover:bg-gray-600 text-sm"
+        >
+          Batal
+        </button>
+        <button
+          onClick={saveEdit}
+          className="bg-green-600 text-white py-1 px-3 rounded hover:bg-green-700 text-sm"
+          disabled={isLoading}
+        >
+          {isLoading ? (
+            <Loader2 className="w-4 h-4 animate-spin mr-1 inline" />
+          ) : null}
+          Simpan
+        </button>
+      </div>
+    )}
+    
+    <div className="bg-gray-50 px-4 py-3 border-t border-gray-200 flex items-center justify-between">
+      <div className="text-sm text-gray-500">
+        Total: {sheetData.values.length - 1} data
+      </div>
+      <div className="flex gap-1">
+        <button
+          className="bg-gray-200 text-gray-600 p-1 rounded hover:bg-gray-300"
+          disabled={true}
+        >
+          <ChevronLeft className="w-5 h-5" />
+        </button>
+        <div className="bg-blue-600 text-white px-3 py-1 rounded">1</div>
+        <button
+          className="bg-gray-200 text-gray-600 p-1 rounded hover:bg-gray-300"
+          disabled={true}
+        >
+          <ChevronRight className="w-5 h-5" />
+        </button>
+      </div>
+    </div>
+  </div>
+)}
       </div>
     </div>
   );
