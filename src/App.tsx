@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { FileSpreadsheet, Trash2, Save, Loader2, ArrowUp, ArrowDown } from 'lucide-react';
+import { FileSpreadsheet, Trash2, Save, Loader2, ArrowUp, ArrowDown, ChevronRight, Edit, Download, Database, SortAsc, Upload, CheckCircle, FileText, LogOut, ChevronLeft } from 'lucide-react';
 import { Toaster, toast } from 'react-hot-toast';
 
 interface IMBFormData {
@@ -510,100 +510,142 @@ function App() {
 
 
   return (
-    
-    <div className="min-h-screen bg-gray-50 py-8">
+    <div className="min-h-screen bg-gradient-to-br from-gray-100 to-gray-200 py-6">
       <Toaster position="top-right" />
-      <div className="max-w-6xl mx-auto">
-        <div className="bg-white rounded-lg shadow-md p-6 mb-6">
-          <div className="flex items-center justify-between mb-6">
-            <div className="flex items-center gap-2">
-              <FileSpreadsheet className="w-6 h-6 text-blue-600" />
-              <h1 className="text-2xl font-bold text-gray-800">Form Input Data IMB</h1>
-            </div>
-            <div className="flex items-center gap-4">
-              <select
-                className="rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                value={selectedSheet}
-                onChange={handleSheetChange}
-                disabled={isLoading}
-              >
-                <option value="">Pilih Sheet</option>
-                {availableSheets.map((sheet) => (
-                  <option key={sheet} value={sheet}>
-                    {sheet}
-                  </option>
-                ))}
-              </select>
-      <button
-  onClick={handleLogout}
-  className="bg-red-600 text-white py-2 px-4 rounded-md hover:bg-red-700 flex items-center gap-2"
->Keluar Akun</button>
-              {isLoading && <Loader2 className="w-5 h-5 animate-spin text-blue-600" />}
+      <div className="max-w-5xl mx-auto px-4">
+        {/* Header Card */}
+        <div className="bg-white rounded-lg shadow-lg overflow-hidden mb-6 border border-gray-200">
+          <div className="bg-blue-700 p-4 text-white">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <FileSpreadsheet className="w-6 h-6 text-white" />
+                <h1 className="text-xl font-bold">Form Input Data IMB</h1>
+              </div>
+              <div className="flex items-center gap-3">
+                <select
+                  className="text-gray-800 text-sm rounded-md border-0 shadow-sm focus:ring-2 focus:ring-blue-500"
+                  value={selectedSheet}
+                  onChange={handleSheetChange}
+                  disabled={isLoading}
+                >
+                  <option value="">Pilih Sheet</option>
+                  {availableSheets.map((sheet) => (
+                    <option key={sheet} value={sheet}>
+                      {sheet}
+                    </option>
+                  ))}
+                </select>
+                <button
+                  onClick={handleLogout}
+                  className="bg-red-600 text-white py-1.5 px-3 rounded-md hover:bg-red-700 transition-colors text-sm flex items-center gap-1.5"
+                >
+                  <LogOut className="w-4 h-4" />
+                  Keluar
+                </button>
+                {isLoading && <Loader2 className="w-5 h-5 animate-spin text-white" />}
+              </div>
             </div>
           </div>
-
-          <form onSubmit={handleSubmit} className="space-y-6">
-            <div className="grid grid-cols-2 gap-6">
-              <div>
-                <label className="block text-sm font-medium text-gray-700">
-                  Nomor Berkas/Sampul <span className="text-gray-400">(Opsional)</span>
-                </label>
-                <input
-                  type="text"
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                  value={formData.nomorBerkas}
-                  onChange={(e) => setFormData({ ...formData, nomorBerkas: e.target.value })}
-                />
+  
+          {/* Form Content */}
+          <form onSubmit={handleSubmit} className="p-5">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-5">
+              <div className="space-y-4">
+                <div className="relative">
+                  <label className="block text-xs font-medium text-gray-500 mb-1">
+                    Nomor Berkas/Sampul <span className="text-gray-400">(Opsional)</span>
+                  </label>
+                  <input
+                    type="text"
+                    className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm"
+                    value={formData.nomorBerkas}
+                    onChange={(e) => setFormData({ ...formData, nomorBerkas: e.target.value })}
+                    placeholder="Masukkan nomor berkas"
+                  />
+                </div>
+                
+                <div className="relative">
+                  <label className="block text-xs font-medium text-gray-500 mb-1">Peruntukan</label>
+                  <input
+                    type="text"
+                    className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm"
+                    value={formData.peruntukan}
+                    onChange={(e) => setFormData({ ...formData, peruntukan: e.target.value })}
+                    placeholder="Masukkan peruntukan"
+                  />
+                </div>
+                
+                <div className="relative">
+                  <label className="block text-xs font-medium text-gray-500 mb-1">Alamat</label>
+                  <textarea
+                    className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm"
+                    value={formData.alamat}
+                    onChange={(e) => setFormData({ ...formData, alamat: e.target.value })}
+                    placeholder="Masukkan alamat lengkap"
+                    rows={2}
+                  />
+                </div>
               </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Kode Klasifikasi</label>
-                <input
-                  type="text"
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                  value={formData.kodeKlasifikasi}
-                  onChange={(e) => setFormData({ ...formData, kodeKlasifikasi: e.target.value })}
-                />
+              
+              <div className="space-y-4">
+                <div className="relative">
+                  <label className="block text-xs font-medium text-gray-500 mb-1">Kode Klasifikasi</label>
+                  <input
+                    type="text"
+                    className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm"
+                    value={formData.kodeKlasifikasi}
+                    onChange={(e) => setFormData({ ...formData, kodeKlasifikasi: e.target.value })}
+                    placeholder="Masukkan kode klasifikasi"
+                  />
+                </div>
+                
+                <div className="relative">
+                  <label className="block text-xs font-medium text-gray-500 mb-1">Nama</label>
+                  <input
+                    type="text"
+                    className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm"
+                    value={formData.nama}
+                    onChange={(e) => setFormData({ ...formData, nama: e.target.value.toUpperCase() })}
+                    placeholder="Masukkan nama (otomatis kapital)"
+                  />
+                </div>
+                
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="relative">
+                    <label className="block text-xs font-medium text-gray-500 mb-1">Kurun Waktu</label>
+                    <input
+                      type="text"
+                      className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm"
+                      value={formData.kurunWaktu}
+                      onChange={(e) => setFormData({ ...formData, kurunWaktu: e.target.value })}
+                      placeholder="Masukkan kurun waktu"
+                    />
+                  </div>
+                  <div className="relative">
+                    <label className="block text-xs font-medium text-gray-500 mb-1">Tingkat Perkembangan</label>
+                    <input
+                      type="text"
+                      className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm"
+                      value={formData.tingkatPerkembangan}
+                      onChange={(e) => setFormData({ ...formData, tingkatPerkembangan: e.target.value })}
+                      placeholder="Masukkan tingkat"
+                    />
+                  </div>
+                </div>
               </div>
             </div>
-
-            <div className="grid grid-cols-2 gap-6">
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Peruntukan</label>
-                <input
-                  type="text"
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                  value={formData.peruntukan}
-                  onChange={(e) => setFormData({ ...formData, peruntukan: e.target.value })}
-                />
+            
+            {/* IMB Number Section */}
+            <div className="bg-blue-50 p-4 rounded-lg border border-blue-100 mb-5">
+              <div className="flex items-center text-blue-800 mb-2">
+                <FileText className="w-4 h-4 mr-1" />
+                <label className="text-sm font-medium">Nomor IMB</label>
               </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Nama</label>
-                <input
-                  type="text"
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                  value={formData.nama}
-                  onChange={(e) => setFormData({ ...formData, nama: e.target.value.toUpperCase() })}
-                />
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700">Alamat</label>
-              <input
-                type="text"
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                value={formData.alamat}
-                onChange={(e) => setFormData({ ...formData, alamat: e.target.value })}
-              />
-            </div>
-
-            <div className="bg-gray-50 p-4 rounded-lg">
-              <label className="block text-sm font-medium text-gray-700 mb-2">Nomor IMB</label>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                 <div>
-                  <label className="block text-xs text-gray-500">Format IMB</label>
+                  <label className="block text-xs text-gray-500 mb-1">Format IMB</label>
                   <select
-                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                    className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm"
                     value={formData.nomorIMB.jenis}
                     onChange={(e) =>
                       setFormData({
@@ -612,15 +654,15 @@ function App() {
                       })
                     }
                   >
-                    <option value="format1">Format 1 (dengan BN,PB&PF)</option>
+                    <option value="format1">Format 1 (BN,PB&PF)</option>
                     <option value="format2">Format 2 (standar)</option>
                   </select>
                 </div>
                 <div>
-                  <label className="block text-xs text-gray-500">Nomor Input</label>
+                  <label className="block text-xs text-gray-500 mb-1">Nomor Input</label>
                   <input
                     type="text"
-                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                    className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm"
                     value={formData.nomorIMB.inputan1}
                     onChange={(e) =>
                       setFormData({
@@ -631,9 +673,9 @@ function App() {
                   />
                 </div>
                 <div>
-                  <label className="block text-xs text-gray-500">Bulan (Romawi)</label>
+                  <label className="block text-xs text-gray-500 mb-1">Bulan (Romawi)</label>
                   <select
-                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                    className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm"
                     value={formData.nomorIMB.bulan}
                     onChange={(e) =>
                       setFormData({
@@ -650,10 +692,10 @@ function App() {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-xs text-gray-500">Tahun</label>
+                  <label className="block text-xs text-gray-500 mb-1">Tahun</label>
                   <input
                     type="text"
-                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                    className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm"
                     value={formData.nomorIMB.tahun}
                     onChange={(e) =>
                       setFormData({
@@ -664,94 +706,93 @@ function App() {
                   />
                 </div>
               </div>
-              <div className="mt-2">
-                <p className="text-sm text-gray-600">
-                  Preview: <span className="font-mono">{generateIMBNumber()}</span>
+              <div className="mt-2 bg-white p-2 rounded border border-blue-100">
+                <p className="text-sm text-blue-800 flex items-center">
+                  <CheckCircle className="w-4 h-4 mr-2 text-blue-600" />
+                  <span>Preview: </span>
+                  <span className="font-mono ml-2 bg-blue-700 text-white px-2 py-0.5 rounded text-xs">{generateIMBNumber()}</span>
                 </p>
               </div>
             </div>
-
-            <div className="grid grid-cols-2 gap-6">
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Kurun Waktu</label>
+            
+            {/* Additional Fields */}
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-5">
+              <div className="relative">
+                <label className="block text-xs font-medium text-gray-500 mb-1">Jumlah Berkas</label>
                 <input
                   type="text"
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                  value={formData.kurunWaktu}
-                  onChange={(e) => setFormData({ ...formData, kurunWaktu: e.target.value })}
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Tingkat Perkembangan</label>
-                <input
-                  type="text"
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                  value={formData.tingkatPerkembangan}
-                  onChange={(e) => setFormData({ ...formData, tingkatPerkembangan: e.target.value })}
-                />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-3 gap-6">
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Jumlah Berkas</label>
-                <input
-                  type="text"
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                  className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm"
                   value={formData.jmlBerkas}
                   onChange={(e) => setFormData({ ...formData, jmlBerkas: e.target.value })}
+                  placeholder="Jumlah berkas"
                 />
               </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Kondisi Arsip</label>
-                <input
-                  type="text"
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+              <div className="relative">
+                <label className="block text-xs font-medium text-gray-500 mb-1">Kondisi Arsip</label>
+                <select
+                  className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm"
                   value={formData.kondisiArsip}
                   onChange={(e) => setFormData({ ...formData, kondisiArsip: e.target.value })}
-                />
+                >
+                  <option value="">Pilih kondisi</option>
+                  <option value="Baik">Baik</option>
+                  <option value="Rusak Ringan">Rusak Ringan</option>
+                  <option value="Rusak Berat">Rusak Berat</option>
+                </select>
               </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700">No Box</label>
+              <div className="relative">
+                <label className="block text-xs font-medium text-gray-500 mb-1">No Box</label>
                 <input
                   type="text"
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                  className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm"
                   value={formData.noBox}
                   onChange={(e) => setFormData({ ...formData, noBox: e.target.value })}
+                  placeholder="No. box"
                 />
               </div>
             </div>
-
-            <div className="grid grid-cols-2 gap-6">
-              <div>
-                <label className="block text-sm font-medium text-gray-700">
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-5">
+              <div className="relative">
+                <label className="block text-xs font-medium text-gray-500 mb-1">
                   File <span className="text-gray-400">(Opsional)</span>
                 </label>
-                <input
-                  type="text"
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                  value={formData.file}
-                  onChange={(e) => setFormData({ ...formData, file: e.target.value })}
-                />
+                <div className="flex">
+                  <input
+                    type="text"
+                    className="block w-full rounded-l-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm"
+                    value={formData.file}
+                    onChange={(e) => setFormData({ ...formData, file: e.target.value })}
+                    placeholder="Nama file"
+                  />
+                  <button 
+                    type="button"
+                    className="bg-gray-100 text-gray-600 px-3 rounded-r-md border border-gray-300 hover:bg-gray-200"
+                    onClick={() => alert('Upload file functionality')}
+                  >
+                    <Upload className="w-4 h-4" />
+                  </button>
+                </div>
               </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700">
+              <div className="relative">
+                <label className="block text-xs font-medium text-gray-500 mb-1">
                   Keterangan <span className="text-gray-400">(Opsional)</span>
                 </label>
                 <input
                   type="text"
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                  className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm"
                   value={formData.keterangan}
                   onChange={(e) => setFormData({ ...formData, keterangan: e.target.value })}
+                  placeholder="Tambahan keterangan"
                 />
               </div>
             </div>
-
-            <div className="pt-4">
+            
+            <div>
               <button
                 type="submit"
                 disabled={isLoading || !selectedSheet}
-                className="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 flex items-center justify-center gap-2 disabled:bg-gray-400 disabled:cursor-not-allowed"
+                className="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 transition duration-200 flex items-center justify-center gap-2 disabled:bg-gray-400 disabled:cursor-not-allowed shadow-sm"
               >
                 {isLoading ? (
                   <>
@@ -768,66 +809,92 @@ function App() {
             </div>
           </form>
         </div>
-
+  
+        {/* Data Table */}
         {sheetData && sheetData.values.length > 0 && (
-          <div className="bg-white rounded-lg shadow-md p-6">
-            <div className="flex justify-between mb-4">
-              <h2 className="text-xl font-semibold">Data {selectedSheet}</h2>
-              <button
-                onClick={sortByIMB}
-                className="bg-green-600 text-white py-1 px-3 rounded-md hover:bg-green-700"
-                disabled={isLoading}
-              >
-                Urutkan Nomor IMB
-              </button>
+          <div className="bg-white rounded-lg shadow-lg overflow-hidden border border-gray-200">
+            <div className="bg-gray-50 p-4 border-b border-gray-200 flex justify-between items-center">
+              <h2 className="text-lg font-semibold text-gray-700 flex items-center">
+                <Database className="w-5 h-5 mr-2 text-blue-600" />
+                Data {selectedSheet}
+              </h2>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => alert('Export functionality')}
+                  className="bg-green-600 text-white py-1.5 px-3 rounded-md hover:bg-green-700 transition-colors text-sm flex items-center gap-1.5"
+                >
+                  <Download className="w-4 h-4" />
+                  Export
+                </button>
+                <button
+                  onClick={sortByIMB}
+                  className="bg-blue-600 text-white py-1.5 px-3 rounded-md hover:bg-blue-700 transition-colors text-sm flex items-center gap-1.5"
+                  disabled={isLoading}
+                >
+                  <SortAsc className="w-4 h-4" />
+                  Urutkan No. IMB
+                </button>
+              </div>
             </div>
+            
             <div className="overflow-x-auto">
               <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
+                <thead className="bg-gray-100">
                   <tr>
                     {sheetData.values[0].map((header, index) => (
                       <th
                         key={index}
-                        className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                        className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
                       >
                         {header}
                       </th>
                     ))}
-                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Aksi
                     </th>
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
                   {sheetData.values.slice(1).map((row, rowIndex) => (
-                    <tr key={rowIndex}>
+                    <tr key={rowIndex} className="hover:bg-gray-50 transition-colors">
                       {row.map((cell, cellIndex) => (
-                        <td key={cellIndex} className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        <td key={cellIndex} className="px-4 py-2 whitespace-nowrap text-sm text-gray-500">
                           {cell}
                         </td>
                       ))}
-                      <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                        <div className="flex gap-2 justify-end">
+                      <td className="px-4 py-2 whitespace-nowrap text-right text-sm font-medium">
+                        <div className="flex gap-1 justify-end">
                           <button
                             onClick={() => moveRowUp(rowIndex + 1)}
-                            className="text-blue-600 hover:text-blue-900"
+                            className="text-blue-600 hover:text-blue-900 p-1 rounded hover:bg-blue-50"
                             disabled={rowIndex === 0 || isLoading}
+                            title="Pindah ke atas"
                           >
-                            <ArrowUp className="w-5 h-5" />
+                            <ArrowUp className="w-4 h-4" />
                           </button>
                           <button
                             onClick={() => moveRowDown(rowIndex + 1)}
-                            className="text-blue-600 hover:text-blue-900"
+                            className="text-blue-600 hover:text-blue-900 p-1 rounded hover:bg-blue-50"
                             disabled={rowIndex === sheetData.values.length - 2 || isLoading}
+                            title="Pindah ke bawah"
                           >
-                            <ArrowDown className="w-5 h-5" />
+                            <ArrowDown className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={() => alert('Edit row ' + (rowIndex + 1))}
+                            className="text-amber-600 hover:text-amber-900 p-1 rounded hover:bg-amber-50"
+                            disabled={isLoading}
+                            title="Edit data"
+                          >
+                            <Edit className="w-4 h-4" />
                           </button>
                           <button
                             onClick={() => deleteRow(rowIndex + 1)}
-                            className="text-red-600 hover:text-red-900"
+                            className="text-red-600 hover:text-red-900 p-1 rounded hover:bg-red-50"
                             disabled={isLoading}
+                            title="Hapus data"
                           >
-                            <Trash2 className="w-5 h-5" />
+                            <Trash2 className="w-4 h-4" />
                           </button>
                         </div>
                       </td>
@@ -835,6 +902,27 @@ function App() {
                   ))}
                 </tbody>
               </table>
+            </div>
+            
+            <div className="bg-gray-50 px-4 py-3 border-t border-gray-200 flex items-center justify-between">
+              <div className="text-sm text-gray-500">
+                Total: {sheetData.values.length - 1} data
+              </div>
+              <div className="flex gap-1">
+                <button
+                  className="bg-gray-200 text-gray-600 p-1 rounded hover:bg-gray-300"
+                  disabled={true}
+                >
+                  <ChevronLeft className="w-5 h-5" />
+                </button>
+                <div className="bg-blue-600 text-white px-3 py-1 rounded">1</div>
+                <button
+                  className="bg-gray-200 text-gray-600 p-1 rounded hover:bg-gray-300"
+                  disabled={true}
+                >
+                  <ChevronRight className="w-5 h-5" />
+                </button>
+              </div>
             </div>
           </div>
         )}
