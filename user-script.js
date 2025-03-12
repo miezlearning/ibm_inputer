@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name         Auto Fill Form Arsip with Template Selector
 // @namespace    http://tampermonkey.net/
-// @version      0.6
-// @description  Mengisi form arsip secara otomatis dengan pilihan template nomor arsip, bulan, dan tahun, serta tanggal menyesuaikan
+// @version      0.8
+// @description  Mengisi form arsip secara otomatis dengan pilihan template nomor arsip, bulan, dan tahun, serta tanggal dan uraian menyesuaikan
 // @author       You
 // @match        http://172.16.29.106/earsip/archive/add
 // @grant        GM_addStyle
@@ -38,10 +38,31 @@
 
     function formatDate(bulan, tahun) {
         const date = new Date();
-        const selectedBulan = bulan || (date.getMonth() + 1); // Default ke bulan saat ini
-        const selectedTahun = tahun || date.getFullYear(); // Default ke tahun saat ini
-        const hari = '01'; // Default ke tanggal 1, pengguna bisa ubah manual
+        const selectedBulan = bulan || (date.getMonth() + 1);
+        const selectedTahun = tahun || date.getFullYear();
+        const hari = '01';
         return `${selectedTahun}-${String(selectedBulan).padStart(2, '0')}-${hari}`;
+    }
+
+    // Fungsi untuk mengambil deskripsi dari opsi klasifikasi yang dipilih
+    function getClassificationDescription() {
+        const klasifikasi = document.querySelector('select[name="classification_id"]');
+        if (klasifikasi && klasifikasi.value) {
+            const selectedOption = klasifikasi.options[klasifikasi.selectedIndex].text;
+            // Pisahkan kode dan deskripsi, ambil hanya deskripsi
+            const description = selectedOption.split(' - ')[1] || selectedOption;
+            return description.toUpperCase();
+        }
+        return ''; // Default kosong jika tidak ada pilihan
+    }
+
+    // Fungsi untuk memperbarui uraian secara real-time
+    function updateUraian() {
+        const uraian = document.querySelector('textarea[name="description"]');
+        if (uraian) {
+            const description = getClassificationDescription();
+            uraian.value = `NAMA AN. ${description}`;
+        }
     }
 
     GM_addStyle(`
@@ -94,7 +115,6 @@
                         <option value="">Pilih Bulan</option>
                         <option value="1">Januari</option>
                         <option value="2">Februari</option>
-                        '3': 'III',
                         <option value="3">Maret</option>
                         <option value="4">April</option>
                         <option value="5">Mei</option>
@@ -140,6 +160,13 @@
                 fillOtherFields(selectedBulan, selectedTahun);
             });
 
+            // Tambahkan event listener untuk perubahan klasifikasi
+            const klasifikasi = document.querySelector('select[name="classification_id"]');
+            if (klasifikasi) {
+                klasifikasi.addEventListener('change', updateUraian);
+            }
+
+            // Isi default saat halaman dimuat
             const noArsip = document.querySelector('input[name="no"]');
             if (noArsip) {
                 noArsip.value = 'Input mas...';
@@ -152,6 +179,7 @@
                 }
             }
             fillOtherFields(null, null);
+            updateUraian(); // Panggil pertama kali untuk set default
         }
     });
 
@@ -171,11 +199,7 @@
             instansi.value = '2';
         }
 
-        let uraian = document.querySelector('textarea[name="description"]');
-        if (uraian) {
-            uraian.value = 'NAMA AN. PENYEDIAAN RUMAH UMUM DAN KOMERSIAL';
-        }
-
+        // Uraian diatur oleh event listener, jadi skip di sini
 
         let media = document.querySelector('select[name="media_id"]');
         if (media) {
