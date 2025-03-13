@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name         Auto Fill Form Arsip with Template Selector
 // @namespace    http://tampermonkey.net/
-// @version      0.8
-// @description  Mengisi form arsip secara otomatis dengan pilihan template nomor arsip, bulan, dan tahun, serta tanggal dan uraian menyesuaikan
+// @version      0.9
+// @description  Mengisi form arsip secara otomatis dengan pilihan template nomor arsip, bulan, tahun, dan inputan box
 // @author       You
 // @match        http://172.16.29.106/earsip/archive/add
 // @grant        GM_addStyle
@@ -44,19 +44,16 @@
         return `${selectedTahun}-${String(selectedBulan).padStart(2, '0')}-${hari}`;
     }
 
-    // Fungsi untuk mengambil deskripsi dari opsi klasifikasi yang dipilih
     function getClassificationDescription() {
         const klasifikasi = document.querySelector('select[name="classification_id"]');
         if (klasifikasi && klasifikasi.value) {
             const selectedOption = klasifikasi.options[klasifikasi.selectedIndex].text;
-            // Pisahkan kode dan deskripsi, ambil hanya deskripsi
             const description = selectedOption.split(' - ')[1] || selectedOption;
             return description.toUpperCase();
         }
-        return ''; // Default kosong jika tidak ada pilihan
+        return '';
     }
 
-    // Fungsi untuk memperbarui uraian secara real-time
     function updateUraian() {
         const uraian = document.querySelector('textarea[name="description"]');
         if (uraian) {
@@ -91,6 +88,11 @@
             background: #0056b3;
         }
         .template-selector select, .template-selector input[type="text"] {
+            margin-top: 5px;
+            padding: 3px;
+            width: 150px;
+        }
+        .template-selector input[type="number"] {
             margin-top: 5px;
             padding: 3px;
             width: 150px;
@@ -131,19 +133,30 @@
                     <input type="text" id="tahunInput" placeholder="Tahun (mis: 2025)" value="${new Date().getFullYear()}">
                 </div>
                 <div>
+                    <input type="number" id="inputanBox" placeholder="Nomor Box (mis: 1)" value="1" min="1" step="1">
+                </div>
+                <div>
                     <button id="applyTemplate">Terapkan</button>
                 </div>
             `;
             document.body.appendChild(ui);
 
-            // Event handler untuk tombol Terapkan
+            // Validasi inputanBox supaya cuma angka
+            const inputanBox = document.getElementById('inputanBox');
+            inputanBox.addEventListener('input', function() {
+                this.value = this.value.replace(/[^0-9]/g, ''); // Hapus non-angka
+                if (this.value === '' || parseInt(this.value) < 1) this.value = '1'; // Minimal 1
+            });
+
             document.getElementById('applyTemplate').addEventListener('click', function() {
                 const selectedTemplate = document.querySelector('input[name="template"]:checked').value;
                 const inputan1 = document.getElementById('inputan1').value || '001';
                 const selectedBulan = document.getElementById('bulanSelector').value;
                 const selectedTahun = document.getElementById('tahunInput').value;
+                const inputanBoxValue = document.getElementById('inputanBox').value || '1';
                 const noArsipField = document.querySelector('input[name="no"]');
                 const tanggalField = document.querySelector('input[name="date"]');
+                const lokasiField = document.querySelector('input[name="location"]');
 
                 if (noArsipField) {
                     noArsipField.value = generateNoArsip(selectedTemplate, inputan1, selectedBulan, selectedTahun);
@@ -157,16 +170,18 @@
                     }
                 }
 
+                if (lokasiField) {
+                    lokasiField.value = `BOX ${inputanBoxValue}`;
+                }
+
                 fillOtherFields(selectedBulan, selectedTahun);
             });
 
-            // Tambahkan event listener untuk perubahan klasifikasi
             const klasifikasi = document.querySelector('select[name="classification_id"]');
             if (klasifikasi) {
                 klasifikasi.addEventListener('change', updateUraian);
             }
 
-            // Isi default saat halaman dimuat
             const noArsip = document.querySelector('input[name="no"]');
             if (noArsip) {
                 noArsip.value = 'Input mas...';
@@ -178,8 +193,12 @@
                     jQuery(tanggal).datepicker('setDate', tanggal.value).trigger('change');
                 }
             }
+            const lokasi = document.querySelector('input[name="location"]');
+            if (lokasi) {
+                lokasi.value = 'BOX 1'; // Default
+            }
             fillOtherFields(null, null);
-            updateUraian(); // Panggil pertama kali untuk set default
+            updateUraian();
         }
     });
 
@@ -199,8 +218,6 @@
             instansi.value = '2';
         }
 
-        // Uraian diatur oleh event listener, jadi skip di sini
-
         let media = document.querySelector('select[name="media_id"]');
         if (media) {
             media.value = '2';
@@ -209,11 +226,6 @@
         let keaslian = document.querySelector('select[name="originality"]');
         if (keaslian) {
             keaslian.value = 'Asli';
-        }
-
-        let lokasi = document.querySelector('input[name="location"]');
-        if (lokasi) {
-            lokasi.value = 'BOX ';
         }
 
         let kondisi = document.querySelector('select[name="shape"]');
