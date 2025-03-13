@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name         Auto Fill Form Arsip with Template Selector
 // @namespace    http://tampermonkey.net/
-// @version      1.0
-// @description  Mengisi form arsip secara otomatis dan submit langsung ke halaman add
+// @version      1.1
+// @description  Mengisi form arsip secara otomatis dan pastikan redirect ke halaman add setelah submit
 // @author       You
 // @match        http://172.16.29.106/earsip/archive/add
 // @grant        GM_addStyle
@@ -136,7 +136,7 @@
                     <input type="number" id="inputanBox" placeholder="Nomor Box (mis: 1)" value="1" min="1" step="1">
                 </div>
                 <div>
-                    <button id="applyTemplate">Terapkan & Submit</button>
+                    <button id="applyTemplate">Terapkan</button>
                 </div>
             `;
             document.body.appendChild(ui);
@@ -148,7 +148,7 @@
                 if (this.value === '' || parseInt(this.value) < 1) this.value = '1';
             });
 
-            // Event handler untuk "Terapkan & Submit"
+            // Event handler untuk "Terapkan" (hanya isi form, ga submit)
             document.getElementById('applyTemplate').addEventListener('click', function() {
                 const selectedTemplate = document.querySelector('input[name="template"]:checked').value;
                 const inputan1 = document.getElementById('inputan1').value || '001';
@@ -177,17 +177,9 @@
 
                 fillOtherFields(selectedBulan, selectedTahun);
                 updateUraian();
-
-                // Submit form otomatis
-                const submitButton = document.querySelector('button[name="process"][value="submit"]');
-                if (submitButton) {
-                    submitButton.click(); // Klik tombol submit
-                } else {
-                    console.error('Tombol submit tidak ditemukan!');
-                }
             });
 
-            // Override form submission untuk pastiin redirect
+            // Override form submission untuk redirect ke /earsip/archive/add
             form.addEventListener('submit', function(e) {
                 e.preventDefault(); // Cegah submit default
                 const formData = new FormData(form);
@@ -200,9 +192,11 @@
                         window.location.href = 'http://172.16.29.106/earsip/archive/add';
                     } else {
                         console.error('Gagal submit form');
+                        alert('Gagal menyimpan data, cek koneksi atau form.');
                     }
                 }).catch(error => {
                     console.error('Error:', error);
+                    alert('Error saat submit: ' + error.message);
                 });
             });
 
