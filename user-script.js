@@ -56,9 +56,11 @@
 
     function updateUraian() {
         const uraian = document.querySelector('textarea[name="description"]');
+        const namaInput = document.getElementById('namaInput');
         if (uraian) {
             const description = getClassificationDescription();
-            uraian.value = `NAMA AN. ${description}`;
+            const namaValue = namaInput ? (namaInput.value || 'NAMA') : 'NAMA'; // Default "NAMA" kalau kosong
+            uraian.value = `${namaValue} AN. ${description}`;
         }
     }
 
@@ -130,6 +132,10 @@
                         <option value="11">November</option>
                         <option value="12">Desember</option>
                     </select>
+                </div>
+                <div>
+                    <span class="input-label">Nama</span>
+                    <input type="text" id="namaInput" placeholder="Masukkan nama">
                 </div>
                 <div>
                     <span class="input-label">Tahun</span>
