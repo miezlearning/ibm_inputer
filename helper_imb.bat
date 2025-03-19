@@ -49,52 +49,82 @@ if "%choice%"=="8" exit /b
 goto MENU
 
 :SET_ALL_BELUM
+set "processed=0"
 for /l %%i in (1,1,%count%) do (
-    ren "!folder[%%i]!" "!foldername[%%i]! (Belum Diinput eArsip)"
+    ren "!folder[%%i]!" "!foldername[%%i]! (Belum Diinput eArsip)" 2>nul
+    if not errorlevel 1 set /a processed+=1
 )
-echo Semua folder disetel ke "Belum Diinput eArsip".
+if !processed! equ 0 (
+    echo Tidak ada folder yang dapat diubah ke "Belum Diinput eArsip".
+) else (
+    echo Semua folder disetel ke "Belum Diinput eArsip" untuk !processed! folder.
+)
 pause
 goto SCAN_FOLDER
 
 :SET_ALL_DONE
+set "processed=0"
 for /l %%i in (1,1,%count%) do (
-    ren "!folder[%%i]!" "!foldername[%%i]! (Sudah Diinput eArsip)"
+    ren "!folder[%%i]!" "!foldername[%%i]! (Sudah Diinput eArsip)" 2>nul
+    if not errorlevel 1 set /a processed+=1
 )
-echo Semua folder disetel ke "Sudah Diinput eArsip".
+if !processed! equ 0 (
+    echo Tidak ada folder yang dapat diubah ke "Sudah Diinput eArsip".
+) else (
+    echo Semua folder disetel ke "Sudah Diinput eArsip" untuk !processed! folder.
+)
 pause
 goto SCAN_FOLDER
 
 :SET_SPECIFIC_DONE
-set /p num="Masukkan nomor folder untuk disetel ke Sudah Diinput eArsip (1-%count%): "
-if !num! gtr %count% (
-    echo Nomor tidak valid!
-    pause
-    goto MENU
-)
+set /p num="Masukkan nomor BOX untuk disetel ke Sudah Diinput eArsip (misal, 1 untuk BOX 1): "
 if !num! lss 1 (
-    echo Nomor tidak valid!
+    echo Nomor tidak valid! Harus lebih besar dari 0.
     pause
     goto MENU
 )
-ren "!folder[%num%]!" "!foldername[%num%]! (Sudah Diinput eArsip)"
-echo Folder !num! disetel ke "Sudah Diinput eArsip".
+set "found=0"
+for /l %%i in (1,1,%count%) do (
+    set "current_folder=!foldername[%%i]!"
+    for /f "tokens=2" %%n in ("!current_folder!") do (
+        if "%%n"=="!num!" (
+            ren "!folder[%%i]!" "!foldername[%%i]! (Sudah Diinput eArsip)" 2>nul
+            if not errorlevel 1 (
+                set "found=1"
+                echo BOX !num! disetel ke "Sudah Diinput eArsip".
+            )
+        )
+    )
+)
+if !found! equ 0 (
+    echo Folder BOX !num! tidak ditemukan atau gagal diubah.
+)
 pause
 goto SCAN_FOLDER
 
 :SET_SPECIFIC_BELUM
-set /p num="Masukkan nomor folder untuk disetel ke Belum Diinput eArsip (1-%count%): "
-if !num! gtr %count% (
-    echo Nomor tidak valid!
-    pause
-    goto MENU
-)
+set /p num="Masukkan nomor BOX untuk disetel ke Belum Diinput eArsip (misal, 1 untuk BOX 1): "
 if !num! lss 1 (
-    echo Nomor tidak valid!
+    echo Nomor tidak valid! Harus lebih besar dari 0.
     pause
     goto MENU
 )
-ren "!folder[%num%]!" "!foldername[%num%]! (Belum Diinput eArsip)"
-echo Folder !num! disetel ke "Belum Diinput eArsip".
+set "found=0"
+for /l %%i in (1,1,%count%) do (
+    set "current_folder=!foldername[%%i]!"
+    for /f "tokens=2" %%n in ("!current_folder!") do (
+        if "%%n"=="!num!" (
+            ren "!folder[%%i]!" "!foldername[%%i]! (Belum Diinput eArsip)" 2>nul
+            if not errorlevel 1 (
+                set "found=1"
+                echo BOX !num! disetel ke "Belum Diinput eArsip".
+            )
+        )
+    )
+)
+if !found! equ 0 (
+    echo Folder BOX !num! tidak ditemukan atau gagal diubah.
+)
 pause
 goto SCAN_FOLDER
 
@@ -102,7 +132,7 @@ goto SCAN_FOLDER
 set /p start="Masukkan nomor BOX awal (misal, 1 untuk BOX 1): "
 set /p end="Masukkan nomor BOX akhir (misal, 5 untuk BOX 5): "
 if !start! lss 1 (
-    echo Rentang awal tidak valid!
+    echo Rentang awal tidak valid! Harus lebih besar dari 0.
     pause
     goto MENU
 )
@@ -123,11 +153,11 @@ for /l %%i in (1,1,%count%) do (
         set "box_num=%%n"
         if !box_num! geq !start! if !box_num! leq !end! (
             if "!range_choice!"=="1" (
-                ren "!folder[%%i]!" "!foldername[%%i]! (Sudah Diinput eArsip)"
-                set /a processed+=1
+                ren "!folder[%%i]!" "!foldername[%%i]! (Sudah Diinput eArsip)" 2>nul
+                if not errorlevel 1 set /a processed+=1
             ) else if "!range_choice!"=="2" (
-                ren "!folder[%%i]!" "!foldername[%%i]! (Belum Diinput eArsip)"
-                set /a processed+=1
+                ren "!folder[%%i]!" "!foldername[%%i]! (Belum Diinput eArsip)" 2>nul
+                if not errorlevel 1 set /a processed+=1
             )
         )
     )
@@ -163,22 +193,34 @@ if !end! lss !start! (
     goto MENU
 )
 
+set "created=0"
 for /l %%i in (!start!,1,!end!) do (
-    mkdir "BOX %%i" 2>nul
-    if errorlevel 1 (
-        echo Folder "BOX %%i" sudah ada atau gagal dibuat.
-    ) else (
-        echo Membuat "BOX %%i".
+    if not exist "BOX %%i" (
+        mkdir "BOX %%i" 2>nul
+        if not errorlevel 1 (
+            echo Membuat "BOX %%i".
+            set /a created+=1
+        )
     )
 )
-echo Pembuatan folder BOX batch selesai.
+if !created! equ 0 (
+    echo Tidak ada folder baru yang dibuat. Semua folder dalam rentang sudah ada.
+) else (
+    echo Pembuatan folder BOX batch selesai. Dibuat !created! folder.
+)
 pause
 goto SCAN_FOLDER
 
 :REMOVE_ALL_STATUS
+set "processed=0"
 for /l %%i in (1,1,%count%) do (
-    ren "!folder[%%i]!" "!foldername[%%i]!"
+    ren "!folder[%%i]!" "!foldername[%%i]!" 2>nul
+    if not errorlevel 1 set /a processed+=1
 )
-echo Status semua folder telah dihapus.
+if !processed! equ 0 (
+    echo Tidak ada status yang dapat dihapus.
+) else (
+    echo Status semua folder telah dihapus untuk !processed! folder.
+)
 pause
 goto SCAN_FOLDER
