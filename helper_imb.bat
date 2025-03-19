@@ -33,9 +33,10 @@ echo 3. Setel folder tertentu ke "Sudah Diinput eArsip"
 echo 4. Setel folder tertentu ke "Belum Diinput eArsip"
 echo 5. Setel rentang folder BOX ke "Sudah Diinput eArsip" atau "Belum Diinput eArsip"
 echo 6. Buat folder BOX secara batch
-echo 7. Keluar
+echo 7. Hapus status semua folder
+echo 8. Keluar
 echo.
-set /p choice="Masukkan pilihan Anda (1-7): "
+set /p choice="Masukkan pilihan Anda (1-8): "
 
 if "%choice%"=="1" goto SET_ALL_BELUM
 if "%choice%"=="2" goto SET_ALL_DONE
@@ -43,7 +44,8 @@ if "%choice%"=="3" goto SET_SPECIFIC_DONE
 if "%choice%"=="4" goto SET_SPECIFIC_BELUM
 if "%choice%"=="5" goto SET_RANGE
 if "%choice%"=="6" goto CREATE_BATCH_BOX
-if "%choice%"=="7" exit /b
+if "%choice%"=="7" goto REMOVE_ALL_STATUS
+if "%choice%"=="8" exit /b
 goto MENU
 
 :SET_ALL_BELUM
@@ -170,5 +172,13 @@ for /l %%i in (!start!,1,!end!) do (
     )
 )
 echo Pembuatan folder BOX batch selesai.
+pause
+goto SCAN_FOLDER
+
+:REMOVE_ALL_STATUS
+for /l %%i in (1,1,%count%) do (
+    ren "!folder[%%i]!" "!foldername[%%i]!"
+)
+echo Status semua folder telah dihapus.
 pause
 goto SCAN_FOLDER
