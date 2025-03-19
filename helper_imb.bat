@@ -1,0 +1,166 @@
+@echo off
+setlocal EnableDelayedExpansion
+
+:SCAN_FOLDER
+echo Scanning folders...
+set "count=0"
+for /d %%i in (*) do (
+    set /a count+=1
+    set "folder[!count!]=%%i"
+    set "foldername[!count!]=%%i"
+)
+
+if %count% equ 0 (
+    echo No folders found in current directory.
+)
+
+:MENU
+cls
+echo Found %count% folders:
+echo.
+for /l %%i in (1,1,%count%) do (
+    echo %%i. !foldername[%%i]!
+)
+echo.
+echo Options:
+echo 1. Set all to "Belum"
+echo 2. Set all to "Done"
+echo 3. Set specific folder to "Done"
+echo 4. Set specific folder to "Belum"
+echo 5. Set range of boxes to "Done" or "Belum"
+echo 6. Create batch BOX folders
+echo 7. Exit
+echo.
+set /p choice="Enter your choice (1-7): "
+
+if "%choice%"=="1" goto SET_ALL_BELUM
+if "%choice%"=="2" goto SET_ALL_DONE
+if "%choice%"=="3" goto SET_SPECIFIC_DONE
+if "%choice%"=="4" goto SET_SPECIFIC_BELUM
+if "%choice%"=="5" goto SET_RANGE
+if "%choice%"=="6" goto CREATE_BATCH_BOX
+if "%choice%"=="7" exit /b
+goto MENU
+
+:SET_ALL_BELUM
+for /l %%i in (1,1,%count%) do (
+    ren "!folder[%%i]!" "!foldername[%%i]! (Belum)"
+)
+echo All folders set to "Belum".
+pause
+goto MENU
+
+:SET_ALL_DONE
+for /l %%i in (1,1,%count%) do (
+    ren "!folder[%%i]!" "!foldername[%%i]! (Done)"
+)
+echo All folders set to "Done".
+pause
+goto MENU
+
+:SET_SPECIFIC_DONE
+set /p num="Enter folder number to set as Done (1-%count%): "
+if !num! gtr %count% (
+    echo Invalid number!
+    pause
+    goto MENU
+)
+if !num! lss 1 (
+    echo Invalid number!
+    pause
+    goto MENU
+)
+ren "!folder[%num%]!" "!foldername[%num%]! (Done)"
+echo Folder !num! set to "Done".
+pause
+goto MENU
+
+:SET_SPECIFIC_BELUM
+set /p num="Enter folder number to set as Belum (1-%count%): "
+if !num! gtr %count% (
+    echo Invalid number!
+    pause
+    goto MENU
+)
+if !num! lss 1 (
+    echo Invalid number!
+    pause
+    goto MENU
+)
+ren "!folder[%num%]!" "!foldername[%num%]! (Belum)"
+echo Folder !num! set to "Belum".
+pause
+goto MENU
+
+:SET_RANGE
+set /p start="Enter start range (1-%count%): "
+set /p end="Enter end range (1-%count%): "
+if !start! gtr %count% (
+    echo Invalid start range!
+    pause
+    goto MENU
+)
+if !end! gtr %count% (
+    echo Invalid end range!
+    pause
+    goto MENU
+)
+if !start! lss 1 (
+    echo Invalid start range!
+    pause
+    goto MENU
+)
+if !end! lss !start! (
+    echo End range must be greater than or equal to start range!
+    pause
+    goto MENU
+)
+
+echo 1. Set range to "Done"
+echo 2. Set range to "Belum"
+set /p range_choice="Choose status for range (1-2): "
+
+if "!range_choice!"=="1" (
+    for /l %%i in (!start!,1,!end!) do (
+        ren "!folder[%%i]!" "!foldername[%%i]! (Done)"
+    )
+    echo Range !start! to !end! set to "Done".
+) else if "!range_choice!"=="2" (
+    for /l %%i in (!start!,1,!end!) do (
+        ren "!folder[%%i]!" "!foldername[%%i]! (Belum)"
+    )
+    echo Range !start! to !end! set to "Belum".
+) else (
+    echo Invalid choice!
+)
+pause
+goto MENU
+
+:CREATE_BATCH_BOX
+cls
+echo Create Batch BOX Folders
+echo.
+set /p start="Enter start range: "
+set /p end="Enter end range: "
+if !start! lss 1 (
+    echo Start range must be 1 or greater!
+    pause
+    goto MENU
+)
+if !end! lss !start! (
+    echo End range must be greater than or equal to start range!
+    pause
+    goto MENU
+)
+
+for /l %%i in (!start!,1,!end!) do (
+    mkdir "BOX %%i" 2>nul
+    if errorlevel 1 (
+        echo Folder "BOX %%i" already exists or creation failed.
+    ) else (
+        echo Created "BOX %%i".
+    )
+)
+echo Batch BOX creation completed.
+pause
+goto SCAN_FOLDER
